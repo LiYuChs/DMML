@@ -1,151 +1,95 @@
-# 資料探勘作業 - MIMIC-3C 前處理與 EDA
+# 資料探勘作業 A2 - MIMIC3C Stratified Sampling 實驗
 
 ## 專案簡介
-本專案針對 MIMIC-3C 資料集，完成院內死亡預測（in-hospital mortality prediction）所需的端到端資料前處理與探索式資料分析（EDA）。
+本專案使用 MIMIC3C 的 model-ready 資料，重做並延伸 W7_20260416 的分層抽樣實驗，重點檢驗在醫療不平衡分類任務中，Stratified 與 Random split 對 macro F1 的影響。
 
-核心目標：
-- 將原始臨床表格資料轉換為可直接用於 machine learning 的 model-ready 資料集。
+主要設計如下：
+1. 二元不平衡資料設定為 9:1（y=1 約 10%）。
+2. 三種資料量：n = 100、500、6000。
+3. 七種模型：DecisionTree、KNN、LogisticReg、SVM、MLP、RandomForest、NaiveBayes。
+4. 每組進行 20 個 seed，並比較 Stratified 與 Random 的 paired macro F1。
 
-主要流程包含：
-1. 資料理解與資料品質檢查
-2. 隱性缺失值清理與 missing value handling
-3. 特徵轉換（log transform、scaling、encoding）
-4. 特徵工程與降維（PCA）
-5. 分析與建模輸出檔案匯出
+## 資料來源與欄位
+1. 主要檔案：data/df_model_ready.csv（方案 A，使用 HW1 資料前處理方法）。
+2. 目標欄位：target。
+3. 防洩漏欄位（若存在會刪除）：ExpiredHospital、LOSdays、LOSgroupNum、AdmitDiagnosis。
 
----
-
-## 資料集說明
-- 來源：MIMIC-III Clinical Database Demo（Kaggle）
-- 本專案使用檔案：`data/mimic3c.csv`
-- 目標欄位（target label）：`ExpiredHospital`（0 = survived，1 = expired）
-
----
-
-## 專案目錄結構
-
+## 專案結構
 ```text
-A1_1158029_李宇晟/
-├─ A1_1158029.ipynb        # 主 notebook（前處理 + EDA + 匯出）
-├─ A1_1158029.md           # 作業說明與分析報告
-├─ README.md               # 本文件
-├─ DEBUG_LOG.md            # 除錯紀錄
-├─ PROMPT_LOG.md           # 問答與操作紀錄
-├─ requirements.txt        # 相依套件
-└─ data/
-   └─ mimic3c.csv          # 原始資料
+A2_1158029_李宇晟/
+├─ A2_1158029.ipynb      # 主實驗 notebook
+├─ A2_1158029.md         # A2 報告文字版
+├─ README.md             # 本文件
+├─ DEBUG_LOG.md          # A2 除錯紀錄
+├─ PROMPT_LOG.md         # A2 提示與操作紀錄
+├─ requirements.txt
+├─ data/
+│  ├─ df_model_ready.csv
+│  └─ mimic3c.csv
+└─ output/
+  ├─ mimic3c_results.csv
+  ├─ significance_full.csv
+  ├─ significance_table.md
+  ├─ ceiling_effect_table.md
+  ├─ std_ratio_table.md
+  ├─ mimic3c_boxplot_n100.png
+  ├─ mimic3c_boxplot_n500.png
+  └─ mimic3c_boxplot_n6000.png
 ```
 
----
-
-## 環境設定
-
-### 1) 建立並啟用 Python 環境
-可使用你習慣的環境管理工具（conda 或 venv）。
-
-### 2) 安裝相依套件
+## 環境與安裝
+1. 建立 Python 環境（conda 或 venv）。
+2. 安裝套件：
 ```bash
 pip install -r requirements.txt
 ```
-或是
+若 requirements 不完整，可補安裝：
 ```bash
-pip install ipykernel
-pip install matplotlib
-pip install seaborn
-pip install scikit-learn
+pip install ipykernel==7.2.0 matplotlib==3.7.5 seaborn==0.13.2 scipy==1.10.1 scikit-learn==1.3.2 ==2.0.3 numpy==1.26.4
 ```
-
-### 3) 開啟並執行 notebook
-請依序執行：
-- `A1_1158029.ipynb`
-
----
 
 ## Notebook 流程摘要
+1. 載入套件與輸出資料夾初始化。
+2. 定義工具函式：
+  - create_csv
+  - make_imbalanced_subset
+  - load_mimic3c
+  - fit_and_score
+  - run_one_dataset
+  - paired_significance_table
+  - ceiling_effect_table
+  - std_ratio_table
+  - plot_boxplot
+3. 載入全資料集（預設 use_solution_a=True）。
+4. 依 SIZE_GRID 迭代 n，先做 9:1 子抽樣，再進行 20 seeds 實驗。
+5. 輸出 CSV、Markdown 表格與 boxplot 圖。
 
-### Step 1. 資料切分
-- 以 `ExpiredHospital` 進行 stratified train/test split
+## 輸出檔案說明
+1. output/mimic3c_results.csv
+  - 每一列為一次 seed x strategy x model x n 的 macro F1 結果。
+2. output/significance_full.csv
+  - 每個 n x model 的 paired t-test（t_value、p_value、mean_diff、better）。
+3. output/significance_table.md
+  - p < 0.05 的子表（若無顯著則只剩表頭）。
+4. output/ceiling_effect_table.md
+  - n=500 下各模型平均 F1 與 stratified-random 差值標準差。
+5. output/std_ratio_table.md
+  - n=100 下 std(Stratified) / std(Random) 比值。
+6. output/mimic3c_boxplot_n*.png
+  - 三種資料量下模型與抽樣策略的 F1 分布箱型圖。
 
-### Step 2. 缺失值標準化
-先將隱性缺失字串轉為標準 missing values：
-- `UNKNOWN (DEFAULT)`
-- `na`
-- `NOT SPECIFIED`
-- `UNOBTAINABLE`
-- `UNKNOWN/NOT SPECIFIED`
-- `UNABLE TO OBTAIN`
-- `PATIENT DECLINED TO ANSWER`
+## 重現步驟
+1. 開啟 A2_1158029.ipynb。
+2. 依序自上而下執行所有 cell。
+3. 檢查 output 內是否生成 8 個檔案（3 圖 + 5 表）。
 
-### Step 3. 缺失值處理
-- 依欄位語意進行 categorical imputation
-- 對 `AdmitDiagnosis` 缺失列執行 drop（占比小且臨床資訊重要）
+## 驗證清單
+1. Cell 執行完成且無中斷錯誤。
+2. 螢幕輸出可看到 X shape、y=1 比例、特徵數量。
+3. output/mimic3c_results.csv 筆數應為 840 列（3 n x 20 seeds x 2 strategy x 7 model）。
+4. output/significance_full.csv 應為 21 列（3 n x 7 model）。
+5. output/significance_table.md 若無顯著結果，顯示僅標題屬正常。
 
-### Step 4. 特徵前處理
-- 數值欄位：log transform（右偏分佈特徵）+ standardization
-- 類別欄位：
-  - 高基數欄位使用 TargetEncoder
-  - 低基數欄位使用 OneHotEncoder
-
-### Step 5. 特徵工程
-- `resource_intensity`
-- `long_LOS_flag`
-- `complexity_score`
-
-### Step 6. 對 `Num*` 計數欄位做 PCA
-- 降低共線性關係，壓縮高維且噪音較高的計數特徵
-
-### Step 7. 匯出 artifacts
-Notebook 完整執行後，會將分析與建模輸出寫入 `output/`。
-
----
-
-## 預期輸出檔案
-完整執行 notebook 後，`output/` 內預期會有：
-
-- `df_feature.csv`：
-  最終整併前的特徵資料
-
-- `df_model_ready.csv`：
-  可直接建模的最終表格（numeric features + target）
-
-- `eda_key_stats.csv`：
-  報告中引用的關鍵統計值
-
-- `missing_value_ratio.jpg`：
-  缺失比例視覺化圖表
-
-- `distribution_plots.jpg`：
-  連續變數分布圖
-
----
-
-## 驗證檢查清單
-建議在執行完後快速檢查：
-
-1. Notebook 可自上而下無錯誤執行。
-2. `output/` 會自動建立。
-3. `df_model_ready.csv` 存在，且包含 `target`。
-4. `df_model_ready.csv` 不含缺失值。
-5. `eda_key_stats.csv` 含有 `A1_1158029.md` 引用的關鍵統計項目。
-
----
-
-## 常見問題
-
-### Excel 開啟 CSV 中文亂碼
-匯出 CSV 時請加入 BOM：
-```python
-df.to_csv(path, index=False, encoding='utf-8-sig')
-```
-
-### OneHotEncoder 出現 unknown category warning
-建議：
-- 設定 `handle_unknown='ignore'`
-- 在 transform 前先完成一致的 train/test 類別清理
-
----
-
-## 相關文件
-- `A1_1158029.md`：作業主文件與分析解讀
-- `DEBUG_LOG.md`：錯誤與修正紀錄
-- `PROMPT_LOG.md`：互動提示與操作歷程
+## 備註
+1. 本 notebook 會先對各 seed 做 train/test split，再比較 Stratified 與 Random。
+2. n=100 的 Random split 在個別 seed 可能出現極低少數類比例，導致波動偏大，這也是 std ratio 分析的重點。

@@ -1,97 +1,122 @@
-# DEBUG LOG (整理版)
+# DEBUG LOG
 
-本文件整理 Notebook 開發過程中遇到的錯誤與修正方式，方便快速回查。
-
-## 1) ImportError: train_test_split 匯入路徑錯誤
+## 1) FileNotFoundError: data/df_model_ready.csv 不存在
 
 ### 錯誤訊息
 ```python
-ImportError: cannot import name 'train_test_split' from 'sklearn.preprocessing'
+FileNotFoundError: [Errno 2] No such file or directory: 'data/df_model_ready.csv'
 ```
 
 ### 發生原因
-train_test_split 不在 sklearn.preprocessing，而是在 sklearn.model_selection。
+load_mimic3c(use_solution_a=True) 會直接讀取 data/df_model_ready.csv。若尚未執行 A1 或檔案路徑不正確，會讀不到。
 
 ### 修正方式
-```python
-from sklearn.model_selection import train_test_split
-```
+1. 確認 data/df_model_ready.csv 存在。
+2. 或改用 load_mimic3c(use_solution_a=False) 並檢查程式中 target 欄位來源。
 
 ---
 
-## 2) IndexingError: 布林索引對齊失敗
-
-### 錯誤觸發程式
-```python
-train_df[(train_df.isnull().sum() > 0)]
-```
+## 2) KeyError: 'target' 欄位不存在
 
 ### 錯誤訊息
 ```python
-IndexingError: Unalignable boolean Series provided as indexer
+KeyError: 'target'
 ```
 
 ### 發生原因
-train_df.isnull().sum() > 0 產生的是欄位層級的布林 Series，
-但上述寫法是拿來篩選列，索引軸不一致而報錯。
+方案 A 預期資料含有 target 欄位。若提供的是原始 mimic3c.csv 或欄位名稱不同，會在 y = df['target'] 失敗。
 
 ### 修正方式
-```python
-missing_count = dataframe.isnull().sum()
-missing_features = missing_count[missing_count > 0]
-```
+1. 使用正確的 model-ready 檔案。
+2. 先印出 df.columns 檢查標籤欄位名稱。
+3. 若是原始檔，改用方案 B 並指定正確標籤欄位。
 
 ---
 
-## 3) AttributeError: seaborn 的 ax 傳入 ndarray
-
-### 錯誤觸發程式
-```python
-sns.histplot(data=train_df, x='NumCPTevents', bins=30, kde=True, ax=axes[0], color='skyblue')
-```
+## 3) ValueError: 資料量不足以進行指定抽樣
 
 ### 錯誤訊息
 ```python
-AttributeError: 'numpy.ndarray' object has no attribute 'xaxis'
+ValueError: 資料量不足以進行指定大小與比例的抽樣
 ```
 
 ### 發生原因
-plt.subplots(2, 3) 產生的 axes 是二維陣列。
-axes[0] 是一列子圖，不是單一 Axes 物件，seaborn 需要單一 Axes。
+make_imbalanced_subset() 會強制抽到 n_total 且少數類比例為 0.1。若母體資料少數類或多數類樣本不足，將拋出錯誤。
 
 ### 修正方式
-```python
-sns.set_theme(style='whitegrid')
-
-fig, axes = plt.subplots(2, 3, figsize=(18, 5))
-
-sns.histplot(data=train_df, x='NumCPTevents', bins=30, kde=True, ax=axes[0][0], color='skyblue')
-axes[0][0].set_title('Distribution of NumCPTevents')
-
-sns.histplot(data=train_df, x='NumInput', bins=50, kde=True, ax=axes[0][1], color='salmon')
-axes[0][1].set_title('Distribution of NumInput')
-
-sns.histplot(data=train_df, x='NumLabs', bins=50, kde=True, ax=axes[0][2], color='lightgreen')
-axes[0][2].set_title('Distribution of NumLabs')
-
-plt.tight_layout()
-plt.show()
-```
+1. 降低 n_total。
+2. 調整 imbalance_ratio。
+3. 先檢查 y==1 與 y==0 的可用樣本數。
 
 ---
 
-## 4) UserWarning: OneHotEncoder 出現未知類別
+## 4) PermissionError: CSV 正在被其他程式占用
 
-### 警告訊息
+### 錯誤訊息
 ```python
-UserWarning: Found unknown categories in columns [2] during transform. These unknown categories will be encoded as all zeros
+PermissionError: csv file is currently being used by another program. Please close the file and try again.
 ```
 
-### 說明
-測試資料出現訓練資料未看過的類別。
-若 OneHotEncoder 設定 handle_unknown='ignore'，未知類別被編碼為全 0 屬於預期行為。
+### 發生原因
+create_csv() 會先嘗試刪除舊檔後再寫入，若檔案被 Excel 或編輯器占用，os.remove 會失敗。
 
-### 建議處理
-1. 保持 OneHotEncoder(handle_unknown='ignore')。
-2. 在 EDA 階段先檢查 train/test 類別差異並記錄來源。
-3. 若未知類別比例偏高，可將低頻類別先合併為 OTHER 再編碼。
+### 修正方式
+1. 關閉 output 內開啟中的 CSV。
+2. 重新執行輸出 cell。
+
+---
+
+## 5) t-test 結果表看似空白
+
+### 現象
+output/significance_table.md 只有標題，沒有任何資料列。
+
+### 發生原因
+該表只保留 p < 0.05 的結果；若 21 組都不顯著，輸出就會只有欄位名稱。
+
+### 修正方式
+1. 先檢查 output/significance_full.csv 是否有完整 21 列。
+2. 確認這是統計結果本身，而非程式錯誤。
+
+---
+
+## 6) SVM 警告或訓練時間較長
+
+### 現象
+SVC 在特徵數較高或資料較大時訓練時間較長，可能伴隨收斂相關提醒。
+
+### 發生原因
+每個 seed 都要重訓 7 個模型，且包含 RBF 核 SVM 與 MLP，總訓練成本高。
+
+### 修正方式
+1. 測試階段暫時將 SIZE_GRID 改為 [100]。
+2. 減少 n_repeats（例如 5）。
+3. 正式跑完整報告時再恢復原設定。
+
+---
+
+## 7) NaN 出現在 std ratio
+
+### 錯誤/現象
+當分母 std(Random) 幾乎為 0 時，ratio 可能非常大、非常小或不穩定。
+
+### 發生原因
+某些模型在特定 n 下分數變異極小，導致比例數值敏感。
+
+### 修正方式
+1. 先確認原始 f1 序列是否合理。
+2. 必要時在報告中標註該比值為「接近 0 變異分母下的極端值」。
+
+---
+
+## 8) 輸出圖檔缺失
+
+### 現象
+output 內只看到 CSV，沒有 mimic3c_boxplot_n*.png。
+
+### 發生原因
+通常是最後一段繪圖迴圈未執行、執行中斷，或 matplotlib backend 造成 cell 失敗。
+
+### 修正方式
+1. 單獨重跑包含 plot_boxplot 的 cell。
+2. 確認 OUTPUT_DIR 已建立且有寫入權限。

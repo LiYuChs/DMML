@@ -1,0 +1,77 @@
+﻿統計項目,數值
+數據集總行數,58951
+數據集總列數,28
+目標變數-逝世(1)人數,5853
+目標變數-存活(0)人數,53098
+目標變數-逝世比例(%),9.93
+缺失值-AdmitDiagnosis,0
+缺失值-marital_status,0
+缺失值-religion,0
+缺失值-ethnicity,0
+age-均值,53.0
+age-中位數,59.0
+age-標準差,26.03
+age-最小值,0.0
+age-最大值,89.0
+LOSdays-均值,10.12
+LOSdays-中位數,6.46
+LOSdays-標準差,12.46
+LOSdays-最小值,0.0
+LOSdays-最大值,294.63
+TotalNumInteract-均值,636.34
+TotalNumInteract-中位數,497.5
+TotalNumInteract-標準差,784.01
+TotalNumInteract-最小值,0.0
+TotalNumInteract-最大值,68600.0
+gender-Top1,M
+gender-Top1_計數,32939
+gender-Top2,F
+gender-Top2_計數,26012
+admit_type-Top1,EMERGENCY
+admit_type-Top1_計數,42062
+admit_type-Top2,NEWBORN
+admit_type-Top2_計數,7863
+admit_type-Top3,ELECTIVE
+admit_type-Top3_計數,7693
+admit_type-Top4,URGENT
+admit_type-Top4_計數,1333
+AdmitDiagnosis-Top1,NEWBORN
+AdmitDiagnosis-Top1_計數,7823
+AdmitDiagnosis-Top2,PNEUMONIA
+AdmitDiagnosis-Top2_計數,1566
+AdmitDiagnosis-Top3,SEPSIS
+AdmitDiagnosis-Top3_計數,1184
+AdmitDiagnosis-Top4,CONGESTIVE HEART FAILURE
+AdmitDiagnosis-Top4_計數,928
+AdmitDiagnosis-Top5,CORONARY ARTERY DISEASE
+AdmitDiagnosis-Top5_計數,840
+marital_status-Top1,MARRIED
+marital_status-Top1_計數,24227
+marital_status-Top2,SINGLE
+marital_status-Top2_計數,13250
+marital_status-Top3,NEWBORN
+marital_status-Top3_計數,7769
+marital_status-Top4,WIDOWED
+marital_status-Top4_計數,7205
+marital_status-Top5,DIVORCED
+marital_status-Top5_計數,3211
+OBS-Emergency+LOSdays>=7,20553
+OBS-Emergency+LOSdays>=7 (%),11.337
+OBS-Non-Emergency+LOSdays>=7,6756
+OBS-Non-Emergency+LOSdays>=7 (%),3.36
+OBS-Age>=65,23422
+OBS-Age>=65 (%),14.136
+OBS-Age<65,35529
+OBS-Age<65 (%),7.155
+OBS-Male,32939
+OBS-Male (%),9.572
+OBS-Female,26012
+OBS-Female (%),10.38
+OBS-LOSdays>=10,18056
+OBS-LOSdays>=10 (%),10.567
+OBS-LOSdays<10,40895
+OBS-LOSdays<10 (%),9.647
+OBS-TotalNumInteract>=q75,14738
+OBS-TotalNumInteract>=q75 (%),28.186
+OBS-TotalNumInteract<q25,14738
+OBS-TotalNumInteract<q25 (%),3.535

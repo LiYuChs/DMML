@@ -1,0 +1,8 @@
+﻿Feature,Unknown_Category,Count
+marital_status,UNKNOWN (DEFAULT),281
+AdmitProcedure,na,6500
+religion,NOT SPECIFIED,9433
+religion,UNOBTAINABLE,6522
+ethnicity,UNKNOWN/NOT SPECIFIED,3641
+ethnicity,UNABLE TO OBTAIN,626
+ethnicity,PATIENT DECLINED TO ANSWER,447
